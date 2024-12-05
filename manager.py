@@ -3,24 +3,28 @@ from fastapi.websockets import WebSocket
 class WebsocketManger:
     def __init__(self):
         self.connected_clients = []
-        
-    async def connect(self, websocket:WebSocket):
+       
+    async def connect(self, websocket: WebSocket):
         await websocket.accept()
         client_ip = f"{websocket.client.host}: {websocket.client.port}"
-        print(client_ip)
+        print(f"Client connected: {client_ip}")
         self.connected_clients.append(websocket)
-        message = {"client":client_ip, "message": f"Welcome"}
-        
-        await websocket.send_json(message)
-    async def send_message(self, websocket:WebSocket, message:str):
-        message = {
-            "client": message["client"],
-            "message":message["content"]
-        }
-        await websocket.send_json(message)
-        
-    async def disconnect(self, websocket:WebSocket):
-        self.connected_clients.remove(websocket)
-        print(f"Client {websocket.client.host}: {websocket.client.port} disconnected")
-    
-                
+       
+    async def send_message(self, websocket: WebSocket, message: dict):
+        try:
+            formatted_message = {
+                "client": message.get("client", "Unknown"),
+                "content": message.get("content", "")
+            }
+            await websocket.send_json(formatted_message)
+        except Exception as e:
+            print(f"Error sending message: {e}")
+            await self.disconnect(websocket)
+       
+    async def disconnect(self, websocket: WebSocket):
+        try:
+            self.connected_clients.remove(websocket)
+            client_ip = f"{websocket.client.host}: {websocket.client.port}"
+            print(f"Client disconnected: {client_ip}")
+        except ValueError:
+            pass  # Client already removed
