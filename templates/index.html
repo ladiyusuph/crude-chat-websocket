@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crude Chat App</title>
+</head>
+<body>
+    <h1>Crude Chat</h1>
+    <form>
+        <label for="message">
+            Message
+        </label>
+        <p>
+            <input type="text" name="message" id="message" required>
+            <button type="submit">Send</button>
+        </p>
+    </form>
+
+    <div id="messages"></div>
+    <script>
+        const ws = new WebSocket("ws://localhost:8000/ws");
+        const form = document.querySelector("form");
+        const messagesDiv = document.getElementById("messages")
+
+        const makeid = (length) => {
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            let counter = 0;
+            while (counter < length) {
+              result += characters.charAt(Math.floor(Math.random() * charactersLength));
+              counter += 1;
+            }
+            return result;
+        } 
+        const clinetIdentifier = makeid(6)
+        ws.onopen = () => {
+            console.log("Connected to the WebSocket server");
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log("Received:", data);
+
+            const  newMessage = document.createElement('p')
+
+            newMessage.innerText =`${data.client} says ${data.message}`
+            messagesDiv.appendChild(newMessage)
+
+            const hr = document.createElement('hr')
+            messagesDiv.appendChild(hr)
+        };
+
+        ws.onerror = (error) => {
+            console.error("WebSocket Error:", error);
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket connection closed");
+        };
+
+        
+        form.addEventListener("submit", (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(form);
+            const message = formData.get('message');
+
+            // Send the message via WebSocket
+            ws.send(JSON.stringify({ content: message,
+                client: clinetIdentifier,
+                timestamp: new Date()
+             }));
+            
+            
+            // Clear the input field
+            form.reset();
+            event.preventDefault()
+        });
+    </script>
+</body>
+</html>
